@@ -4,12 +4,11 @@ pipeline {
     environment {
         TF_VERSION = '1.7.5'
         AZURE_SERVICE_CONNECTION = 'azure-service-principal'
-        RESOURCE_GROUP = 'rg-jenkins'
+        RESOURCE_GROUP = 'AzureclassAssignThu'
         LOCATION = 'eastus'
         SUBSCRIPTION_ID = 'a98d0e19-0c0e-4a5b-91ac-c6923c6331bc'
         APP_SERVICE_PLAN = 'jenkins-app-service-plan'
-        APP_SERVICE_WEBAPP_DOTNET = 'dotnet-api-app'
-        APP_SERVICE_WEBAPP_PYTHON = 'python-api-app'
+        APP_SERVICE_WEBAPP_DOTNET = 'jenkins-yd-webapp'
     }
 
     stages {
@@ -62,10 +61,7 @@ pipeline {
                     terraform import azurerm_service_plan.asp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/serverFarms/${env.APP_SERVICE_PLAN} || echo Already Managed
 
                     echo Importing .NET Web App...
-                    terraform import azurerm_windows_web_app.dotnetapi /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_DOTNET} || echo Already Managed
-
-                    echo Importing Python Web App...
-                    terraform import azurerm_linux_web_app.pythonapi /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_PYTHON} || echo Already Managed
+                    terraform import azurerm_linux_web_app.webapp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_DOTNET} || echo Already Managed
                 """
             }
         }
