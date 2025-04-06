@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         TF_VERSION = '1.7.5'
-        AZURE_SERVICE_CONNECTION = 'azure-service-principal' 
+        AZURE_SERVICE_CONNECTION = 'azure-service-principal'
     }
 
     stages {
@@ -17,16 +17,33 @@ pipeline {
                     tenantIdVariable: 'TENANT_ID'
                 )]) {
                     bat '''
-                        echo "Setting Azure environment variables"
-                        export ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID
-                        export ARM_CLIENT_ID=$CLIENT_ID
-                        export ARM_CLIENT_SECRET=$CLIENT_SECRET
-                        export ARM_TENANT_ID=$TENANT_ID
+                        echo Setting Azure environment variables
+                        set ARM_SUBSCRIPTION_ID=%SUBSCRIPTION_ID%
+                        set ARM_CLIENT_ID=%CLIENT_ID%
+                        set ARM_CLIENT_SECRET=%CLIENT_SECRET%
+                        set ARM_TENANT_ID=%TENANT_ID%
 
-                        echo "Initializing Terraform"
+                        echo Initializing Terraform
                         terraform init
                     '''
                 }
+            }
+        }
+
+        stage('Terraform Import RG if exists') {
+            steps {
+                bat '''
+                    echo Checking if Resource Group exists...
+                    az login --service-principal -u %CLIENT_ID% -p %CLIENT_SECRET% --tenant %TENANT_ID%
+                    az group show --name rg-jenkins --subscription %SUBSCRIPTION_ID% >nul 2>&1
+
+                    IF %ERRORLEVEL% EQU 0 (
+                        echo Resource Group exists. Importing...
+                        terraform import azurerm_resource_group.rg /subscriptions/%SUBSCRIPTION_ID%/resourceGroups/rg-jenkins
+                    ) ELSE (
+                        echo Resource Group does not exist. Skipping import.
+                    )
+                '''
             }
         }
 
