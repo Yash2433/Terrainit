@@ -4,7 +4,7 @@ pipeline {
     environment {
         TF_VERSION = '1.7.5'
         AZURE_SERVICE_CONNECTION = 'azure-service-principal'
-        RESOURCE_GROUP = 'AzureclassAssignThu'
+        RESOURCE_GROUP = 'rg-jenkins'
         LOCATION = 'eastus'
         SUBSCRIPTION_ID = 'a98d0e19-0c0e-4a5b-91ac-c6923c6331bc'
         APP_SERVICE_PLAN = 'jenkins-app-service-plan'
@@ -61,7 +61,7 @@ pipeline {
                     terraform import azurerm_service_plan.asp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/serverFarms/${env.APP_SERVICE_PLAN} || echo Already Managed
 
                     echo Importing .NET Web App...
-                    terraform import azurerm_linux_web_app.webapp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_DOTNET} || echo Already Managed
+                    terraform import azurerm_linux_web_app.jenkins /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_DOTNET} || echo Already Managed
                 """
             }
         }
