@@ -96,13 +96,18 @@ pipeline {
         always {
             script {
                 echo "Cleaning up..."
-                bat 'taskkill /F /IM terraform.exe || echo terraform.exe was not running.'
-
-                bat """
-                    echo Logging out from Azure...
-                    az logout
-                """
+                // Check if terraform.exe is running before trying to kill it
+                def terraformRunning = bat(script: 'tasklist /FI "IMAGENAME eq terraform.exe"', returnStatus: true) == 0
+                if (terraformRunning) {
+                    bat 'taskkill /F /IM terraform.exe || echo terraform.exe was not running.'
+                } else {
+                    echo "terraform.exe was not running."
+                }
             }
+            bat """
+                echo Logging out from Azure...
+                az logout
+            """
             cleanWs(deleteDirs: true, disableDeferredWipeout: true)
         }
     }
