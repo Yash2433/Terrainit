@@ -5,22 +5,21 @@ provider "azurerm" {
 
 # Create Resource Group
 resource "azurerm_resource_group" "rg" {
-  name     = "rg-jenkins"
+  name     = "AzureclassAssignThu"
   location = "East US"
 }
 
-# Create App Service Plan
+# Create App Service Plan (Linux)
 resource "azurerm_service_plan" "asp" {
   name                = "jenkins-app-service-plan"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
-
-  sku_name = "S1"
-  os_type  = "Linux"
+  sku_name            = "S1"
+  os_type             = "Linux"
 }
 
-# Create App Service for Jenkins
-resource "azurerm_linux_web_app" "jenkins" {
+# Create App Service for .NET 8 Web API
+resource "azurerm_linux_web_app" "webapp" {
   name                = "jenkins-yd-webapp"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
@@ -30,9 +29,7 @@ resource "azurerm_linux_web_app" "jenkins" {
     always_on = true
 
     application_stack {
-      docker_image_name = "jenkins/jenkins:lts"
+      dotnet_version = "8.0"
     }
   }
 }
-
-
