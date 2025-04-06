@@ -51,20 +51,32 @@ pipeline {
             }
         }
 
-        stage('Terraform Import Existing Resources') {
-            steps {
-                bat """
-                    echo Importing Resource Group...
-                    terraform import azurerm_resource_group.rg /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP} || echo Already Managed
-
-                    echo Importing App Service Plan...
-                    terraform import azurerm_service_plan.asp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/serverFarms/${env.APP_SERVICE_PLAN} || echo Already Managed
-
-                    echo Importing .NET Web App...
-                    terraform import azurerm_linux_web_app.webapp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_DOTNET} || echo Already Managed
-                """
-            }
-        }
+       stage('Terraform Import Existing Resources') {
+    steps {
+        bat """
+            echo Importing Resource Group...
+            terraform import azurerm_resource_group.rg /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}
+            IF %ERRORLEVEL% NEQ 0 (
+                echo Failed to import Resource Group.
+                exit /b 1
+            )
+            
+            echo Importing App Service Plan...
+            terraform import azurerm_service_plan.asp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/serverFarms/${env.APP_SERVICE_PLAN}
+            IF %ERRORLEVEL% NEQ 0 (
+                echo Failed to import App Service Plan.
+                exit /b 1
+            )
+            
+            echo Importing .NET Web App...
+            terraform import azurerm_linux_web_app.webapp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_DOTNET}
+            IF %ERRORLEVEL% NEQ 0 (
+                echo Failed to import .NET Web App.
+                exit /b 1
+            )
+        """
+    }
+}
 
         stage('Terraform Plan') {
             steps {
