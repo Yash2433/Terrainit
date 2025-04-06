@@ -73,11 +73,17 @@ pipeline {
 
     post {
         always {
+            script {
+                echo "Releasing any locked files..."
+                bat 'taskkill /F /IM terraform.exe || exit 0'
+            }
+
             bat """
                 echo Logging out from Azure...
                 az logout
             """
-            cleanWs()
+
+            cleanWs(deleteDirs: true, disableDeferredWipeout: true)
         }
     }
 }
