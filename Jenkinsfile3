@@ -74,8 +74,12 @@ pipeline {
     post {
         always {
             script {
-                echo "Releasing any locked files..."
-                bat 'taskkill /F /IM terraform.exe || exit 0'
+                echo "Killing any running terraform.exe..."
+                try {
+                    bat 'taskkill /F /IM terraform.exe'
+                } catch (err) {
+                    echo "terraform.exe was not running. Safe to ignore."
+                }
             }
 
             bat """
