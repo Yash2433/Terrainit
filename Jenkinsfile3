@@ -23,7 +23,7 @@ pipeline {
                 )]) {
                     bat """
                         echo Logging into Azure...
-                        az login --service-principal -u %CLIENT_ID% -p %CLIENT_SECRET% --tenant %TENANT_ID% >nul
+                        az login --service-principal -u %CLIENT_ID% -p %CLIENT_SECRET% --tenant %TENANT_ID%
                     """
                 }
             }
@@ -33,7 +33,14 @@ pipeline {
             steps {
                 bat """
                     echo Checking Resource Group...
-                    az group show --name ${env.RESOURCE_GROUP} --subscription ${env.SUBSCRIPTION_ID} >nul 2>&1 || az group create --name ${env.RESOURCE_GROUP} --location ${env.LOCATION} --subscription ${env.SUBSCRIPTION_ID}
+                    az group show --name ${env.RESOURCE_GROUP} --subscription ${env.SUBSCRIPTION_ID} >nul 2>&1
+
+                    IF %ERRORLEVEL% EQU 0 (
+                        echo Resource Group Exists.
+                    ) ELSE (
+                        echo Creating Resource Group...
+                        az group create --name ${env.RESOURCE_GROUP} --location ${env.LOCATION} --subscription ${env.SUBSCRIPTION_ID}
+                    )
                 """
             }
         }
@@ -48,13 +55,13 @@ pipeline {
             steps {
                 bat """
                     echo Importing Resource Group...
-                    terraform state list | findstr azurerm_resource_group.rg || terraform import azurerm_resource_group.rg /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}
+                    terraform import azurerm_resource_group.rg /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP} || echo Already Managed
 
                     echo Importing App Service Plan...
-                    terraform state list | findstr azurerm_service_plan.asp || terraform import azurerm_service_plan.asp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/serverFarms/${env.APP_SERVICE_PLAN}
+                    terraform import azurerm_service_plan.asp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/serverFarms/${env.APP_SERVICE_PLAN} || echo Already Managed
 
                     echo Importing .NET Web App...
-                    terraform state list | findstr azurerm_linux_web_app.webapp || terraform import azurerm_linux_web_app.webapp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_DOTNET}
+                    terraform import azurerm_linux_web_app.webapp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_DOTNET} || echo Already Managed
                 """
             }
         }
@@ -71,6 +78,7 @@ pipeline {
             }
         }
 
+        // .NET Build and Publish stages added here
         stage('Build .NET 8 Web API') {
             steps {
                 bat """
@@ -95,19 +103,19 @@ pipeline {
     post {
         always {
             script {
-                echo "Cleaning up..."
-                // Check if terraform.exe is running before trying to kill it
-                def terraformRunning = bat(script: 'tasklist /FI "IMAGENAME eq terraform.exe"', returnStatus: true) == 0
-                if (terraformRunning) {
-                    bat 'taskkill /F /IM terraform.exe || echo terraform.exe was not running.'
-                } else {
-                    echo "terraform.exe was not running."
+                echo "Killing any running terraform.exe..."
+                try {
+                    bat 'taskkill /F /IM terraform.exe'
+                } catch (err) {
+                    echo "terraform.exe was not running. Safe to ignore."
                 }
             }
+
             bat """
                 echo Logging out from Azure...
                 az logout
             """
+
             cleanWs(deleteDirs: true, disableDeferredWipeout: true)
         }
     }
