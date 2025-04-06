@@ -6,63 +6,55 @@ pipeline {
         AZURE_SERVICE_CONNECTION = 'azure-service-principal'
         RESOURCE_GROUP = 'rg-jenkins'
         LOCATION = 'eastus'
+        SUBSCRIPTION_ID = 'a98d0e19-0c0e-4a5b-91ac-c6923c6331bc'
     }
 
     stages {
-        stage('Azure Login & Set Environment') {
+        stage('Azure Login') {
             steps {
                 withCredentials([azureServicePrincipal(
                     credentialsId: "${env.AZURE_SERVICE_CONNECTION}",
-                    subscriptionIdVariable: 'SUBSCRIPTION_ID',
+                    subscriptionIdVariable: 'SUBSCRIPTION_ID_DUMMY',
                     clientIdVariable: 'CLIENT_ID',
                     clientSecretVariable: 'CLIENT_SECRET',
                     tenantIdVariable: 'TENANT_ID'
                 )]) {
-                    bat '''
-                        echo Setting Azure environment variables...
-                        set ARM_SUBSCRIPTION_ID=%SUBSCRIPTION_ID%
-                        set ARM_CLIENT_ID=%CLIENT_ID%
-                        set ARM_CLIENT_SECRET=%CLIENT_SECRET%
-                        set ARM_TENANT_ID=%TENANT_ID%
-
-                        echo Azure Login...
+                    bat """
+                        echo Logging into Azure...
                         az login --service-principal -u %CLIENT_ID% -p %CLIENT_SECRET% --tenant %TENANT_ID%
-                    '''
+                    """
                 }
             }
         }
 
         stage('Check & Create Resource Group') {
             steps {
-                bat '''
+                bat """
                     echo Checking Resource Group...
-                    az group show --name %RESOURCE_GROUP% --subscription %SUBSCRIPTION_ID% >nul 2>&1
-                    
+                    az group show --name ${env.RESOURCE_GROUP} --subscription ${env.SUBSCRIPTION_ID} >nul 2>&1
+
                     IF %ERRORLEVEL% EQU 0 (
                         echo Resource Group Exists.
                     ) ELSE (
                         echo Creating Resource Group...
-                        az group create --name %RESOURCE_GROUP% --location %LOCATION% --subscription %SUBSCRIPTION_ID%
+                        az group create --name ${env.RESOURCE_GROUP} --location ${env.LOCATION} --subscription ${env.SUBSCRIPTION_ID}
                     )
-                '''
+                """
             }
         }
 
         stage('Terraform Init') {
             steps {
-                bat '''
-                    echo Terraform Init...
-                    terraform init
-                '''
+                bat 'terraform init'
             }
         }
 
         stage('Terraform Import RG') {
             steps {
-                bat '''
-                    echo Importing Existing Resource Group...
-                    terraform import azurerm_resource_group.rg /subscriptions/%SUBSCRIPTION_ID%/resourceGroups/%RESOURCE_GROUP% || echo Import skipped
-                '''
+                bat """
+                    echo Importing Resource Group into Terraform...
+                    terraform import azurerm_resource_group.rg /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP} || echo Already Managed by Terraform
+                """
             }
         }
 
@@ -74,28 +66,17 @@ pipeline {
 
         stage('Terraform Apply - Auto') {
             steps {
-                bat '''
-                    echo Auto-Apply Terraform Changes...
-                    terraform apply -auto-approve
-                '''
-            }
-        }
-
-        stage('Deployment Status') {
-            steps {
-                bat '''
-                    echo Deployment Completed!
-                '''
+                bat 'terraform apply -auto-approve'
             }
         }
     }
 
     post {
         always {
-            bat '''
-                echo Azure Logout...
+            bat """
+                echo Logging out from Azure...
                 az logout
-            '''
+            """
             cleanWs()
         }
     }
