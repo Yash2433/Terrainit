@@ -11,7 +11,7 @@ resource "azurerm_resource_group" "rg" {
 
 # Create App Service Plan
 resource "azurerm_service_plan" "asp" {
-  name                = "yashappserviceplan"
+  name                = "jenkins-app-service-plan"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
 
