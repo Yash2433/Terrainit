@@ -16,7 +16,7 @@ pipeline {
                     clientSecretVariable: 'CLIENT_SECRET',
                     tenantIdVariable: 'TENANT_ID'
                 )]) {
-                    sh '''
+                    bat '''
                         echo "Setting Azure environment variables"
                         export ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID
                         export ARM_CLIENT_ID=$CLIENT_ID
@@ -32,14 +32,14 @@ pipeline {
 
         stage('Terraform Plan') {
             steps {
-                sh 'terraform plan'
+                bat 'terraform plan'
             }
         }
 
         stage('Terraform Apply') {
             steps {
                 input "Apply Terraform Changes?"
-                sh 'terraform apply -auto-approve'
+                bat 'terraform apply -auto-approve'
             }
         }
     }
