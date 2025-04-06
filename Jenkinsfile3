@@ -54,46 +54,18 @@ pipeline {
 stage('Terraform Import Existing Resources') {
     steps {
         script {
-            try {
-                echo "Importing Resource Group..."
+            echo "Importing Resource Group..."
+            bat "terraform import azurerm_resource_group.rg /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/rg-jenkins"
 
-                // Check if the Resource Group is already managed by Terraform and remove it if necessary
-                def resourceGroupState = bat(script: "terraform state list | findstr azurerm_resource_group.rg", returnStatus: true, returnStdout: true)
-                if (resourceGroupState == "") {
-                    echo "Resource Group not managed by Terraform, importing..."
-                    bat "terraform import azurerm_resource_group.rg /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}"
-                } else {
-                    echo "Resource Group is already managed by Terraform."
-                }
+            echo "Importing App Service Plan..."
+            bat "terraform import azurerm_service_plan.asp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/rg-jenkins/providers/Microsoft.Web/serverFarms/jenkins-app-service-plan"
 
-                echo "Importing App Service Plan..."
-                // Check if App Service Plan is managed
-                def appServicePlanState = bat(script: "terraform state list | findstr azurerm_service_plan.asp", returnStatus: true, returnStdout: true)
-                if (appServicePlanState == "") {
-                    echo "App Service Plan not managed by Terraform, importing..."
-                    bat "terraform import azurerm_service_plan.asp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/serverFarms/${env.APP_SERVICE_PLAN}"
-                } else {
-                    echo "App Service Plan is already managed by Terraform."
-                }
-
-                echo "Importing .NET Web App..."
-                // Check if Web App is managed
-                def webAppState = bat(script: "terraform state list | findstr azurerm_linux_web_app.webapp", returnStatus: true, returnStdout: true)
-                if (webAppState == "") {
-                    echo ".NET Web App not managed by Terraform, importing..."
-                    bat "terraform import azurerm_linux_web_app.webapp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/${env.RESOURCE_GROUP}/providers/Microsoft.Web/sites/${env.APP_SERVICE_WEBAPP_DOTNET}"
-                } else {
-                    echo ".NET Web App is already managed by Terraform."
-                }
-
-            } catch (Exception e) {
-                echo "An error occurred during the import process: ${e.getMessage()}"
-                currentBuild.result = 'FAILURE'
-                error("Import step failed.")
-            }
+            echo "Importing .NET Web App..."
+            bat "terraform import azurerm_linux_web_app.webapp /subscriptions/${env.SUBSCRIPTION_ID}/resourceGroups/rg-jenkins/providers/Microsoft.Web/sites/jenkins-yd-webapp"
         }
     }
 }
+
 
 
        
@@ -104,11 +76,15 @@ stage('Terraform Import Existing Resources') {
             }
         }
 
-        stage('Terraform Apply - Auto') {
-            steps {
-                bat 'terraform apply -auto-approve'
-            }
+      stage('Terraform Apply') {
+    steps {
+        script {
+            echo "Applying Terraform configuration..."
+            bat "terraform apply -auto-approve"
         }
+    }
+}
+
 
         // .NET Build and Publish stages added here
         stage('Build .NET 8 Web API') {
