@@ -5,7 +5,7 @@ pipeline {
         TF_VERSION = '1.7.5'
         AZURE_SERVICE_CONNECTION = 'azure-service-principal'
         RESOURCE_GROUP = 'rg-jenkins'
-        LOCATION = 'eastus'  // change if needed
+        LOCATION = 'eastus'
     }
 
     stages {
@@ -25,7 +25,7 @@ pipeline {
                         set ARM_CLIENT_SECRET=%CLIENT_SECRET%
                         set ARM_TENANT_ID=%TENANT_ID%
 
-                        echo Logging in to Azure...
+                        echo Azure Login...
                         az login --service-principal -u %CLIENT_ID% -p %CLIENT_SECRET% --tenant %TENANT_ID%
                     '''
                 }
@@ -35,23 +35,23 @@ pipeline {
         stage('Check & Create Resource Group') {
             steps {
                 bat '''
-                    echo Checking if Resource Group exists...
+                    echo Checking Resource Group...
                     az group show --name %RESOURCE_GROUP% --subscription %SUBSCRIPTION_ID% >nul 2>&1
                     
                     IF %ERRORLEVEL% EQU 0 (
-                        echo Resource Group already exists.
+                        echo Resource Group Exists.
                     ) ELSE (
-                        echo Resource Group does not exist. Creating...
+                        echo Creating Resource Group...
                         az group create --name %RESOURCE_GROUP% --location %LOCATION% --subscription %SUBSCRIPTION_ID%
                     )
                 '''
             }
         }
 
-        stage('Initialize Terraform') {
+        stage('Terraform Init') {
             steps {
                 bat '''
-                    echo Initializing Terraform...
+                    echo Terraform Init...
                     terraform init
                 '''
             }
@@ -60,8 +60,8 @@ pipeline {
         stage('Terraform Import RG') {
             steps {
                 bat '''
-                    echo Importing Resource Group into Terraform...
-                    terraform import azurerm_resource_group.rg /subscriptions/%SUBSCRIPTION_ID%/resourceGroups/%RESOURCE_GROUP% || echo Skipping Import if Already Managed
+                    echo Importing Existing Resource Group...
+                    terraform import azurerm_resource_group.rg /subscriptions/%SUBSCRIPTION_ID%/resourceGroups/%RESOURCE_GROUP% || echo Import skipped
                 '''
             }
         }
@@ -72,10 +72,20 @@ pipeline {
             }
         }
 
-        stage('Terraform Apply') {
+        stage('Terraform Apply - Auto') {
             steps {
-                input "Proceed with Terraform Apply?"
-                bat 'terraform apply -auto-approve'
+                bat '''
+                    echo Auto-Apply Terraform Changes...
+                    terraform apply -auto-approve
+                '''
+            }
+        }
+
+        stage('Deployment Status') {
+            steps {
+                bat '''
+                    echo Deployment Completed!
+                '''
             }
         }
     }
@@ -83,7 +93,7 @@ pipeline {
     post {
         always {
             bat '''
-                echo Logging out from Azure...
+                echo Azure Logout...
                 az logout
             '''
             cleanWs()
