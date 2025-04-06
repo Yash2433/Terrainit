@@ -2,64 +2,51 @@ pipeline {
     agent any
 
     environment {
-        ARM_CLIENT_ID        = credentials('azure-service-principle', 'clientId')
-        ARM_CLIENT_SECRET    = credentials('azure-service-principle', 'clientSecret')
-        ARM_SUBSCRIPTION_ID  = credentials('azure-service-principle', 'subscriptionId')
-        ARM_TENANT_ID        = credentials('azure-service-principle', 'tenantId')
-        RESOURCE_GROUP       = 'rg-jenkins'
-        APP_SERVICE_NAME     = 'jenkins-yd-webapp'
+        TF_VERSION = '1.7.5'
+        AZURE_SERVICE_CONNECTION = 'azure-service-principal' 
     }
 
     stages {
-        stage('Terraform Init & Validate') {
+        stage('Initialize Terraform') {
             steps {
-                dir('terraform') {
-                    bat '''
+                withCredentials([azureServicePrincipal(
+                    credentialsId: "${env.AZURE_SERVICE_CONNECTION}",
+                    subscriptionIdVariable: 'SUBSCRIPTION_ID',
+                    clientIdVariable: 'CLIENT_ID',
+                    clientSecretVariable: 'CLIENT_SECRET',
+                    tenantIdVariable: 'TENANT_ID'
+                )]) {
+                    sh '''
+                        echo "Setting Azure environment variables"
+                        export ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID
+                        export ARM_CLIENT_ID=$CLIENT_ID
+                        export ARM_CLIENT_SECRET=$CLIENT_SECRET
+                        export ARM_TENANT_ID=$TENANT_ID
+
+                        echo "Initializing Terraform"
                         terraform init
-                        terraform validate
                     '''
                 }
             }
         }
 
-        stage('Terraform Plan & Apply') {
+        stage('Terraform Plan') {
             steps {
-                dir('terraform') {
-                    bat '''
-                        terraform plan -out=tfplan
-                        terraform apply -auto-approve tfplan
-                    '''
-                }
+                sh 'terraform plan'
             }
         }
 
-        stage('Publish .NET 8 Web API') {
+        stage('Terraform Apply') {
             steps {
-                dir('webapi') {
-                    bat 'dotnet publish -c Release -o out'
-                }
-            }
-        }
-
-        stage('Deploy to Azure App Service') {
-            steps {
-                bat '''
-                    az login --service-principal -u %ARM_CLIENT_ID% -p %ARM_CLIENT_SECRET% --tenant %ARM_TENANT_ID%
-                    az account set --subscription %ARM_SUBSCRIPTION_ID%
-                    powershell Compress-Archive -Path webapi\\out\\* -DestinationPath app.zip -Force
-                    az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path app.zip --type zip
-                    del /f /q app.zip
-                '''
+                input "Apply Terraform Changes?"
+                sh 'terraform apply -auto-approve'
             }
         }
     }
 
     post {
-        success {
-            echo 'Terraform Provisioning & .NET API Deployment Successful!'
-        }
-        failure {
-            echo 'Pipeline Failed! Check logs.'
+        always {
+            cleanWs()
         }
     }
 }
