@@ -1,53 +1,47 @@
 variable "subscription_id" {
   description = "Azure Subscription ID"
   type        = string
-  default     = "a98d0e19-0c0e-4a5b-91ac-c6923c6331bc" # Your Azure subscription ID
+  default     = "a98d0e19-0c0e-4a5b-91ac-c6923c6331bc"
 }
 
 variable "resource_group_name" {
   description = "Resource Group Name"
   type        = string
-  default     = "python-webapp-rg" # Updated name for the resource group
+  default     = "AzureclassAssignThu"
 }
 
 variable "location" {
   description = "Azure Region"
   type        = string
-  default     = "East US" # Preferred Azure region
+  default     = "eastus"
 }
 
 variable "app_service_plan_name" {
-  description = "Name of the App Service Plan"
+  description = "App Service Plan Name"
   type        = string
-  default     = "python-app-service-plan" # Updated for the Python App Service Plan
-}
-
-variable "os_type" {
-  description = "Operating System Type for App Service"
-  type        = string
-  default     = "Linux" # Ensure it is set to Linux for Python
+  default     = "jenkins-app-service-plan"
 }
 
 variable "sku_name" {
-  description = "Pricing Tier for App Service Plan"
+  description = "App Service Plan SKU"
   type        = string
-  default     = "S1" # Pricing tier remains the same
+  default     = "S1"
 }
 
-variable "app_service_name" {
-  description = "Name of the Web App"
+variable "os_type" {
+  description = "Operating System Type"
   type        = string
-  default     = "python-webapp" # Updated for the Python web application
+  default     = "Linux"
 }
 
-variable "python_version" {
-  description = "Python Runtime Version"
+variable "web_app_name" {
+  description = "Web App Name"
   type        = string
-  default     = "3.9" # Specify the desired Python runtime version
+  default     = "jenkins-yd-webapp"
 }
 
-variable "startup_file" {
-  description = "Startup file for the Python Web App"
+variable "dotnet_version" {
+  description = "Dotnet Runtime Version"
   type        = string
-  default     = "PythAzureApI_.py" 
+  default     = "8.0"
 }
