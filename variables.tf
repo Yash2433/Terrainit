@@ -7,7 +7,7 @@ variable "subscription_id" {
 variable "resource_group_name" {
   description = "Resource Group Name"
   type        = string
-  default     = "AzureclassAssignThu"
+  default     = "rg-jenkins"
 }
 
 variable "location" {
