@@ -86,27 +86,26 @@ stage('Terraform Import Existing Resources') {
 }
 
 
-        // .NET Build and Publish stages added here
         stage('Build .NET 8 Web API') {
-            steps {
-                bat """
-                    echo Building .NET 8 Web API...
-                    dotnet clean
-                    dotnet build --configuration Release
-                    dotnet publish --configuration Release --output publish
-                """
-            }
-        }
-
-        stage('Deploy to Azure App Service') {
-            steps {
-                bat """
-                    echo Deploying to Azure App Service...
-                    az webapp deploy --resource-group ${env.RESOURCE_GROUP} --name ${env.APP_SERVICE_WEBAPP_DOTNET} --src-path publish --type zip
-                """
-            }
-        }
+    steps {
+        bat '''
+            echo Building .NET 8 Web API...
+            dotnet clean
+            dotnet build --configuration Release
+            dotnet publish --configuration Release --output publish
+        '''
     }
+}
+
+stage('Deploy to Azure App Service') {
+    steps {
+        bat '''
+            echo Deploying to Azure App Service...
+            az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_WEBAPP_DOTNET% --src-path publish --type zip
+        '''
+    }
+}
+
 
     post {
         always {
